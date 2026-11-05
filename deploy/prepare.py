@@ -66,6 +66,11 @@ def prepare(runtime, deployment, *, inline_archive=None, backend_ip=None):
         raise ValueError('OCI deployment requires auth=ResourcePrincipal and local_demo=false.')
     compartment = _ocid(config['compartment_id'], 'compartment')
     model_compartment = _ocid(config.get('model_compartment_id', compartment), 'compartment')
+    # The chat's own container and state bucket live in a separate platform compartment,
+    # so Terraform changes in the managed compartment can never reach the chat itself.
+    platform = _ocid(deployment.get('platform_compartment_id'), 'compartment')
+    if platform == compartment:
+        raise ValueError('platform_compartment_id must differ from the managed compartment_id.')
     if not re.fullmatch(r'[A-Za-z0-9._-]{1,255}', config['bucket']) or 'REPLACE_' in config['bucket']:
         raise ValueError('Replace the bucket placeholder with your private bucket name.')
     if not isinstance(config['namespace'], str) or 'REPLACE_' in config['namespace']:
@@ -118,21 +123,24 @@ def prepare(runtime, deployment, *, inline_archive=None, backend_ip=None):
             raise ValueError('Prebuilt mode requires container_image to name your built chat image, not the base Python image.')
     else:
         raise ValueError('image_mode must be inline or prebuilt.')
-    container = {'displayName': display_name, 'compartmentId': compartment,
+    container = {'displayName': display_name, 'compartmentId': platform,
         'availabilityDomain': availability_domain, 'shape': 'CI.Standard.E4.Flex',
         'shapeConfig': {'ocpus': 1, 'memoryInGBs': 4}, 'containerRestartPolicy': 'ALWAYS',
         'gracefulShutdownTimeoutInSeconds': 60, 'containers': [child],
         'vnics': [{'subnetId': subnet, 'nsgIds': nsgs, 'isPublicIpAssigned': False}]}
-    bucket = {'namespaceName': config['namespace'], 'compartmentId': compartment, 'name': config['bucket'],
+    bucket = {'namespaceName': config['namespace'], 'compartmentId': platform, 'name': config['bucket'],
         'publicAccessType': 'NoPublicAccess', 'versioning': 'Enabled', 'storageTier': 'Standard'}
-    rule = f"ALL {{resource.type = 'computecontainerinstance', resource.compartment.id = '{compartment}'}}"
+    rule = f"ALL {{resource.type = 'computecontainerinstance', resource.compartment.id = '{platform}'}}"
+    bucket_only = f"where target.bucket.name = '{config['bucket']}'"
     statements = [f"Allow dynamic-group '{domain}'/'{group}' to manage all-resources in compartment id {compartment}",
-        f"Allow dynamic-group '{domain}'/'{group}' to use generative-ai-family in compartment id {model_compartment}"]
+        f"Allow dynamic-group '{domain}'/'{group}' to use generative-ai-family in compartment id {model_compartment}",
+        f"Allow dynamic-group '{domain}'/'{group}' to read buckets in compartment id {platform} {bucket_only}",
+        f"Allow dynamic-group '{domain}'/'{group}' to manage objects in compartment id {platform} {bucket_only}"]
     return {'bucket': bucket, 'container': container, 'matchingRule': rule, 'policyStatements': statements,
         'gatewayRoutes': gateway_routes(backend_ip), 'summary': {'mode': 'REVIEW_ONLY', 'cloudChangesMade': False,
             'region': config['region'], 'modelRegion': config.get('model_region', config['region']),
-            'managedCompartmentId': compartment, 'stateBucket': config['bucket'], 'stateKey': config.get('state_key', 'terraform/managed.tfstate'),
-            'imageMode': mode, 'archiveSha256': archive_sha, 'containerCount': 1, 'policyStatementCount': 2,
+            'managedCompartmentId': compartment, 'platformCompartmentId': platform, 'stateBucket': config['bucket'], 'stateKey': config.get('state_key', 'terraform/managed.tfstate'),
+            'imageMode': mode, 'archiveSha256': archive_sha, 'containerCount': 1, 'policyStatementCount': len(statements),
             'gatewayApplicationRouteCount': 11, 'requiresExistingAuthenticatedGateway': True,
             'gatewayBackendAddressKnown': backend_ip is not None}}
 
@@ -150,7 +158,8 @@ def write_outputs(result, output, *, backend_ip=None):
         'gateway-merge-notes.txt': 'ROUTES ONLY: merge these application routes into an already authenticated Gateway deployment.\n'
             'Preserve the global OAuth configuration, dedicated browser app/client binding, and native OAuth callback route.\n'
             'Do not submit this route array as a complete deployment specification.\n'
-            'The container must remain private and accept TCP8080 only from the Gateway network.\n'}
+            'The container must remain private and accept TCP8080 only from the Gateway network.\n'
+            'Keep the platform compartment (container, state bucket) separate from the managed compartment.\n'}
     for name, content in files.items():
         path = output / name
         path.write_text(content + '\n')

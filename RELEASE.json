@@ -1,6 +1,6 @@
 {
   "name": "OCI Terraform Chat Starter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "date": "2026-11-05",
   "license": "MIT",
   "runtime": {
@@ -11,8 +11,8 @@
     "python_hcl2": "7.3.1"
   },
   "validation": {
-    "applicationTestsPassed": 73,
-    "deploymentTestsPassed": 7,
+    "applicationTestsPassed": 75,
+    "deploymentTestsPassed": 8,
     "interfaceControlTestsPassed": 16,
     "skippedTests": 0,
     "terraformParserVersion": "1.13.5",
@@ -31,5 +31,10 @@
     "terraformStateIncluded": false,
     "savedChatsIncluded": false
   },
-  "startHere": "README.md"
+  "startHere": "README.md",
+  "changes": [
+    "Platform compartment separated from the managed compartment",
+    "Optional dedicated AI cluster endpoint (model_endpoint_id)",
+    "Retention lifecycle example, scope notes, attribution"
+  ]
 }

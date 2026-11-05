@@ -41,6 +41,13 @@ def validate_config(value):
         raise ValueError('model_id must be a non-empty on-demand model identifier.')
     if 'routing_profile_id' in config and not isinstance(config['routing_profile_id'], str):
         raise ValueError('routing_profile_id must be a string when supplied.')
+    endpoint = config.get('model_endpoint_id')
+    if endpoint is not None and endpoint != '':
+        # Dedicated AI cluster endpoint: inference stays on capacity reserved for this tenancy.
+        if not isinstance(endpoint, str) or not re.fullmatch(r'ocid1\.generativeaiendpoint\.[a-z0-9]+\.[a-z0-9-]*\.[a-z0-9]+', endpoint):
+            raise ValueError('model_endpoint_id must be a dedicated AI cluster endpoint OCID.')
+        if config.get('routing_profile_id'):
+            raise ValueError('Use either model_endpoint_id (dedicated) or routing_profile_id (on-demand), not both.')
     if 'local_demo' in config and not isinstance(config['local_demo'], bool):
         raise ValueError('local_demo must be true or false.')
     config.setdefault('local_demo', False)

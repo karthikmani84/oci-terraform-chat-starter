@@ -9,8 +9,12 @@ flowchart LR
   User[Administrator] --> Login[Identity Domains and authenticated API Gateway]
   Login --> App[One chat container\nPython application and Terraform CLI]
   App <--> GenAI[OCI Generative AI\nConfigured model region]
-  App <--> State[Private versioned Object Storage\nState, code, conversations and saved Plans]
-  App --> Scope[Configured managed compartment\nConfigured infrastructure region]
+  subgraph Platform[Platform compartment]
+    App
+    State[Private versioned Object Storage\nState, code, conversations and saved Plans]
+  end
+  App <--> State
+  App --> Scope[Managed compartment\nthe only Terraform target scope]
 ```
 
 ## Try it
@@ -20,6 +24,8 @@ Choose one route:
 - **[Run locally](docs/LOCAL_DEVELOPMENT.md):** Python and Terraform on your computer, using your own OCI API-key profile. The page listens on loopback. It still uses real OCI storage, model calls and infrastructure APIs.
 - **[Deploy on OCI](docs/OCI_SETUP.md):** package the source, render your deployment files, and put the private container behind an authenticated API Gateway. The default uses a pinned public Python image with a verified source archive; a Docker build is optional.
 - **[Present the demo](DEMO_RUNBOOK.md):** create a VCN, adopt an existing NLB, and resolve a manual change from chat.
+
+![Deployment on OCI](docs/images/deployment-on-oci.png)
 
 This is a standalone source starter. It contains no customer credentials, deployment history, saved conversations, Terraform state or existing infrastructure identifiers. Copy the example configuration files and supply your own values.
 
@@ -49,11 +55,13 @@ Before every Plan, the app runs a refresh-only check. If a resource was changed 
 | Deletion | Already-managed resources, exact resource-address removals, matching import cleanup, Plan review and second confirmation. |
 | Persistence | Native OCI Terraform backend locking plus bucket versioning; private code, conversations and Plan artifacts. |
 
-This is not a complete OCI service catalogue. Discovery and first-change adoption have the limits shown above. It does not include a general log-troubleshooting mode, arbitrary Python or shell execution, DevOps repositories, CI pipelines, queues, an approval broker or separate Plan/Apply workers.
+This is not a complete OCI service catalogue. The model may propose any `oci_*` resource pinned to the managed compartment, but discovery covers only the seven types above and adoption covers VCNs and NLBs. It does not include Site-to-Site VPN/IPsec support, customer playbooks, a general log-troubleshooting mode, arbitrary Python or shell execution, DevOps repositories, CI pipelines, queues, an approval broker or separate Plan/Apply workers.
 
 ## Configuration and scope
 
-The managed compartment and infrastructure region are deployment settings. The model cannot select a different compartment. The model's processing region can be configured independently: the example uses direct `openai.gpt-oss-120b` access in Frankfurt.
+The managed compartment and infrastructure region are deployment settings. The model cannot select a different compartment. The app's own container and state bucket live in a separate platform compartment that Terraform cannot touch.
+
+The model's processing region can be configured independently: the example uses direct `openai.gpt-oss-120b` access in Frankfurt. To keep inference in-region, point `model_endpoint_id` at a dedicated AI cluster endpoint (see [configuration](docs/CONFIGURATION.md)).
 
 Check [OCI model availability by region](https://docs.oracle.com/en-us/iaas/Content/generative-ai/model-endpoint-regions.htm) before choosing a model location. A regional model listing can mean dedicated-only availability; it does not always mean on-demand access.
 
@@ -89,8 +97,21 @@ Real Terraform parser tests run when `terraform` is on `PATH`; the test report i
 
 ## Operating notes
 
-Use a dedicated managed compartment and a fresh private, versioned bucket. The broad proof-of-concept IAM rules are deliberately compartment-scoped. This trial trusts the application and its operators; the approval buttons do not constrain someone who has compromised the runtime credential. OCI charges for the running container, Gateway, storage, model usage and any resources you choose to provision.
+Use a dedicated managed compartment, a separate platform compartment and a fresh private, versioned bucket. The broad proof-of-concept IAM rules are deliberately compartment-scoped. This trial trusts the application and its operators; the approval buttons do not constrain someone who has compromised the runtime credential. OCI charges for the running container, Gateway, storage, model usage and any resources you choose to provision.
 
 State, Plan artifacts and conversations have **no automatic retention cleanup** in this starter. Plan expiry disables Apply; it does not delete the saved objects. See [troubleshooting and maintenance](docs/TROUBLESHOOTING.md).
 
-The code is provided under the [MIT License](LICENSE). Third-party dependencies retain their own licenses. This is a community starter, not an Oracle product or an endorsement.
+One option is an Object Storage lifecycle rule that deletes old conversations and saved Plans but never touches state or workspace code. Adjust the prefixes and age to your own retention policy before applying it:
+
+```json
+{"items": [
+  {"name": "expire-saved-plans", "action": "DELETE", "isEnabled": true, "timeAmount": 30, "timeUnit": "DAYS",
+   "objectNameFilter": {"inclusionPrefixes": ["plans/"]}},
+  {"name": "expire-conversations", "action": "DELETE", "isEnabled": true, "timeAmount": 90, "timeUnit": "DAYS",
+   "objectNameFilter": {"inclusionPrefixes": ["conversations/"]}}
+]}
+```
+
+Object Storage needs a service policy in your tenancy before lifecycle rules can run; see [Object Lifecycle Management](https://docs.oracle.com/en-us/iaas/Content/Object/Tasks/usinglifecyclepolicies.htm).
+
+The code is provided under the [MIT License](LICENSE). Third-party dependencies retain their own licenses. This is a personal community starter by Karthik Mani, not an Oracle product or an endorsement. Views and code are my own and do not represent my current or previous employers.

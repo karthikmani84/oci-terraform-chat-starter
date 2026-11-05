@@ -6,7 +6,11 @@ This guide sets up the app in your own environment. The included preparation com
 
 Use an OCI account with permission to create the trial resources and configure their IAM access. Before deploying, have:
 
-- A dedicated managed compartment, initially empty, and its OCID. This is the scope for workload changes and the app's runtime role.
+- Two compartments and their OCIDs:
+  - a **platform compartment** for the chat's own container instance and state bucket;
+  - a dedicated **managed compartment**, initially empty, which is the only scope Terraform may change.
+
+  Keeping them separate means the chat can never modify, replace or delete its own runtime, state or permissions, and a container created through the chat does not inherit the chat's role.
 - An Object Storage namespace and a unique name for a fresh private, versioned bucket.
 - An existing private application subnet, an NSG and outbound access to OCI APIs, the model API and public dependency/provider download locations. Permit TCP 8080 from the API Gateway subnet to the app VNIC.
 - An availability domain and enough capacity for `CI.Standard.E4.Flex`, 1 OCPU and 4 GB RAM.
@@ -32,7 +36,7 @@ Edit both copied files. Replace every placeholder with your own values. Do not e
 
 The runtime file selects the managed compartment, state bucket, infrastructure region, model region and intended administrator. Set `public_host` to the exact browser hostname, without a scheme or path. Follow [configuration](CONFIGURATION.md) to obtain the hash of the actual verified administrator subject. Keep `auth` as `ResourcePrincipal` and `local_demo` as `false` for this deployment.
 
-The deployment file selects the availability domain, existing private subnet/NSGs, identity-domain name and dynamic-group name. The default `image_mode` is `inline`: it uses a pinned public Python image and a checksum-verified inline archive of this repository's application code.
+The deployment file selects the platform compartment, availability domain, existing private subnet/NSGs, identity-domain name and dynamic-group name. The default `image_mode` is `inline`: it uses a pinned public Python image and a checksum-verified inline archive of this repository's application code.
 
 Use the same configured infrastructure region in the OCI CLI commands below. Replace `YOUR_INFRASTRUCTURE_REGION` with that region; the model region may differ.
 
@@ -53,8 +57,8 @@ Inspect the output:
 | --- | --- |
 | `bucket.json` | CLI-ready private bucket with versioning enabled |
 | `container-instance.json` | CLI-ready single private Container Instance |
-| `dynamic-group-rule.txt` | Matching rule for container instances in the managed compartment |
-| `IAM-policy.txt` | Two broad POC runtime permissions |
+| `dynamic-group-rule.txt` | Matching rule for container instances in the platform compartment |
+| `IAM-policy.txt` | Four POC runtime permissions |
 | `gateway-http-routes.template.json` | Eleven application routes with an explicit backend-IP placeholder |
 | `summary.json` | Review summary |
 
@@ -72,12 +76,16 @@ oci os bucket create \
 
 Confirm in Console that the bucket is private and versioning is enabled. The [native OCI Terraform backend](https://developer.hashicorp.com/terraform/language/backend/oci) stores state and provides locking in this bucket.
 
-In your identity domain, create the named dynamic group using `dynamic-group-rule.txt`. It matches `resource.type='computecontainerinstance'` and the managed compartment. The matching rule covers every Container Instance in that compartment, so reserve the compartment for the trial.
+In your identity domain, create the named dynamic group using `dynamic-group-rule.txt`. It matches `resource.type='computecontainerinstance'` in the **platform** compartment. The rule covers every Container Instance in that compartment, so keep the platform compartment for the chat only.
 
-Create an IAM policy containing the rendered two rules. Place the policy in a common ancestor of the managed and model-request compartments, such as their parent compartment or the tenancy root. A policy attached only inside the managed child cannot grant access to a model compartment outside that child. See [policy attachment and inheritance](https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/policies.htm).
+Create an IAM policy containing the rendered four rules. Place the policy in a common ancestor of the platform, managed and model-request compartments, such as their parent compartment or the tenancy root. A policy attached only inside the managed child cannot grant access to a model compartment outside that child. See [policy attachment and inheritance](https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/policies.htm).
 
 1. Manage all resources in the managed compartment.
 2. Use `generative-ai-family` in the model-request compartment.
+3. Read the state bucket in the platform compartment.
+4. Manage objects in the state bucket only.
+
+The runtime has no write access to anything else in the platform compartment.
 
 These are the app's runtime permissions. Your setup operator also needs rights to create the hosting resources and use the existing subnet/NSG. IAM changes may take time to become effective; verify the app's actual startup result rather than assuming that saving a policy proves access.
 

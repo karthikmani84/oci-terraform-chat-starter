@@ -2,7 +2,7 @@
 
 ## Runtime
 
-One OCI Container Instance runs the Python HTTP/chat process and Terraform CLI. A private VNIC accepts HTTP from the authenticated API Gateway. The Gateway handles browser sign-in and forwards the verified user subject. The app accepts the configured administrator's subject hash.
+One OCI Container Instance runs the Python HTTP/chat process and Terraform CLI. It and its state bucket sit in a platform compartment, separate from the managed compartment that Terraform changes, so the app cannot modify itself. A private VNIC accepts HTTP from the authenticated API Gateway. The Gateway handles browser sign-in and forwards the verified user subject. The app accepts the configured administrator's subject hash.
 
 The model receives the conversation, managed Terraform code when requested, and filtered resource metadata. It has three read-only tools. It does not receive OCI credentials or wholesale Terraform state/Plan files, and it has no execution tool.
 

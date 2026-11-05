@@ -17,6 +17,7 @@ The app reads `SINGLE_CHAT_CONFIG_FILE` when set. Otherwise it reads JSON from `
 | `model_compartment_id` | Compartment used for model requests; defaults to `compartment_id`. |
 | `model_id` | On-demand model identifier; defaults to `openai.gpt-oss-120b`. |
 | `routing_profile_id` | Optional explicit OCI routing profile. Omit for direct model calls. When present, this takes precedence over `model_id`. |
+| `model_endpoint_id` | Optional dedicated AI cluster endpoint OCID. When set, the app uses dedicated serving mode instead of `model_id`. Cannot be combined with `routing_profile_id`. |
 | `provider_version` | OCI provider version, pinned to `9.11.0` in the example. |
 | `terraform_bin` | Terraform executable path or name; defaults to `terraform`. |
 | `workdir` | Private local working directory; the container uses `/data/workspace`. |
@@ -44,6 +45,22 @@ Put that digest in `admin_subject_sha256`. The helper is not a token decoder or 
 Direct access requires a model available for on-demand use in `model_region`. A routing profile is optional; it is not needed to call a model's regional API directly. The example uses `eu-frankfurt-1` for `openai.gpt-oss-120b` and leaves `routing_profile_id` absent.
 
 OCI's [model availability table](https://docs.oracle.com/en-us/iaas/Content/generative-ai/model-endpoint-regions.htm) distinguishes on-demand and dedicated-only availability. Processing in `model_region` includes the prompts, code and filtered metadata supplied to the model.
+
+## Keep inference in-region with a dedicated AI cluster
+
+For data residency, host the model on a [dedicated AI cluster](https://docs.oracle.com/en-us/iaas/Content/generative-ai/modes.htm) in your own region, create an endpoint, and set:
+
+```json
+"model_region": "YOUR_REGION",
+"model_endpoint_id": "ocid1.generativeaiendpoint.oc1.YOUR_REGION.REPLACE_WITH_ENDPOINT_OCID",
+"model_compartment_id": "ocid1.compartment.oc1..REPLACE_WITH_ENDPOINT_COMPARTMENT_OCID"
+```
+
+No code change is needed. Dedicated clusters are a capacity commitment; check model, shape and region availability before choosing one.
+
+## Deployment setting: platform compartment
+
+`platform_compartment_id` belongs in the deployment file, not the runtime file. It holds the container instance and state bucket and must differ from `compartment_id`. The renderer refuses a deployment where they match.
 
 ## One workspace per configuration
 

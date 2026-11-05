@@ -89,3 +89,25 @@ class ServingTargetTests(unittest.TestCase):
 
 
 if __name__ == '__main__': unittest.main()
+
+
+class DedicatedEndpointTests(unittest.TestCase):
+    ENDPOINT = 'ocid1.generativeaiendpoint.oc1.me-dubai-1.dedicatedfixture'
+
+    def test_dedicated_endpoint_uses_dedicated_serving_mode(self):
+        from app.model import serving_mode
+        mode = serving_mode({'model_endpoint_id': self.ENDPOINT, 'model_id': 'openai.gpt-oss-120b'})
+        self.assertIsInstance(mode, m.DedicatedServingMode)
+        self.assertEqual(mode.endpoint_id, self.ENDPOINT)
+        self.assertIsInstance(serving_mode({'model_id': 'openai.gpt-oss-120b'}), m.OnDemandServingMode)
+
+    def test_config_accepts_endpoint_and_rejects_conflicts(self):
+        from app.config import validate_config
+        base = {'region': 'me-dubai-1', 'compartment_id': 'ocid1.compartment.oc1..examplemanaged',
+                'namespace': 'ns', 'bucket': 'b', 'local_demo': True}
+        self.assertEqual(validate_config({**base, 'model_endpoint_id': self.ENDPOINT})['model_endpoint_id'], self.ENDPOINT)
+        with self.assertRaises(ValueError):
+            validate_config({**base, 'model_endpoint_id': 'openai.gpt-oss-120b'})
+        with self.assertRaises(ValueError):
+            validate_config({**base, 'model_endpoint_id': self.ENDPOINT,
+                             'routing_profile_id': 'ocid1.generativeairoutingprofile.fixture'})

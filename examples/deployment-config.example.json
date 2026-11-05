@@ -1,4 +1,5 @@
 {
+  "platform_compartment_id": "ocid1.compartment.oc1..REPLACE_WITH_PLATFORM_COMPARTMENT_OCID",
   "availability_domain": "REPLACE_WITH_YOUR_AVAILABILITY_DOMAIN",
   "subnet_id": "ocid1.subnet.oc1.region.REPLACE_WITH_PRIVATE_SUBNET_OCID",
   "nsg_ids": [

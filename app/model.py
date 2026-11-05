@@ -45,6 +45,15 @@ safe display-name update when demonstrating adoption. Do not remove omitted reso
 '''
 
 
+def serving_mode(config):
+    """Dedicated AI cluster endpoint when configured, otherwise an on-demand model or routing profile."""
+    from oci.generative_ai_inference import models as m
+    if config.get('model_endpoint_id'):
+        return m.DedicatedServingMode(endpoint_id=config['model_endpoint_id'])
+    return m.OnDemandServingMode(model_id=config.get('routing_profile_id') or
+                                 config.get('model_id') or 'openai.gpt-oss-120b')
+
+
 class Model:
     def __init__(self, client, config, tools):
         self.client, self.config, self.tools = client, config, tools
@@ -70,8 +79,7 @@ class Model:
         for turn in range(10):
             response = self.client.chat(m.ChatDetails(
                 compartment_id=self.config.get('model_compartment_id', self.config['compartment_id']),
-                serving_mode=m.OnDemandServingMode(model_id=self.config.get('routing_profile_id') or
-                    self.config.get('model_id') or 'openai.gpt-oss-120b'),
+                serving_mode=serving_mode(self.config),
                 chat_request=m.GenericChatRequest(messages=messages, tools=defs,
                     tool_choice=m.ToolChoiceAuto(), is_parallel_tool_calls=False,
                     max_completion_tokens=12000, reasoning_effort='MEDIUM', temperature=0.1)))

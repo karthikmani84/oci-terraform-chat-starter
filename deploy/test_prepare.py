@@ -33,7 +33,8 @@ class DeploymentTests(unittest.TestCase):
             'auth': 'ResourcePrincipal', 'model_region': 'eu-frankfurt-1',
             'model_compartment_id': 'ocid1.compartment.oc1..modeldemo',
             'public_host': 'chat.example.com', 'admin_subject_sha256': 'a' * 64}
-        self.deployment = {'availability_domain': 'example:REGION-AD-1',
+        self.deployment = {'platform_compartment_id': 'ocid1.compartment.oc1..platformdemo',
+            'availability_domain': 'example:REGION-AD-1',
             'subnet_id': 'ocid1.subnet.oc1.example.subnetdemo',
             'nsg_ids': ['ocid1.networksecuritygroup.oc1.example.nsgdemo'],
             'identity_domain': 'Default', 'dynamic_group_name': 'TerraformChat'}
@@ -49,12 +50,13 @@ class DeploymentTests(unittest.TestCase):
 
     def test_scope_private_state_and_one_runtime_are_bound_to_same_config(self):
         result = self.render()
-        self.assertEqual(result['bucket']['compartmentId'], self.runtime['compartment_id'])
+        platform = self.deployment['platform_compartment_id']
+        self.assertEqual(result['bucket']['compartmentId'], platform)
         self.assertEqual(result['bucket']['namespaceName'], self.runtime['namespace'])
         self.assertEqual(result['bucket']['publicAccessType'], 'NoPublicAccess')
         self.assertEqual(result['bucket']['versioning'], 'Enabled')
         instance = result['container']
-        self.assertEqual(instance['compartmentId'], self.runtime['compartment_id'])
+        self.assertEqual(instance['compartmentId'], platform)
         self.assertEqual(len(instance['containers']), 1)
         self.assertFalse(instance['vnics'][0]['isPublicIpAssigned'])
         config = json.loads(instance['containers'][0]['environmentVariables']['SINGLE_CHAT_CONFIG_JSON'])
@@ -62,11 +64,21 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(config['model_region'], 'eu-frankfurt-1')
         self.assertFalse(config.get('routing_profile_id'))
         self.assertEqual(instance['containers'][0]['environmentVariables']['APP_SHA256'], self.manifest['sha256'])
-        self.assertEqual(len(result['policyStatements']), 2)
-        self.assertIn(self.runtime['compartment_id'], result['matchingRule'])
+        self.assertEqual(len(result['policyStatements']), 4)
+        self.assertIn(platform, result['matchingRule'])
+        self.assertNotIn(self.runtime['compartment_id'], result['matchingRule'])
         self.assertIn('manage all-resources in compartment id ' + self.runtime['compartment_id'], result['policyStatements'][0])
         self.assertIn('use generative-ai-family in compartment id ' + self.runtime['model_compartment_id'], result['policyStatements'][1])
+        bucket_only = "where target.bucket.name = 'example-chat-state'"
+        self.assertEqual(result['policyStatements'][2].split(' to ')[1], f'read buckets in compartment id {platform} {bucket_only}')
+        self.assertEqual(result['policyStatements'][3].split(' to ')[1], f'manage objects in compartment id {platform} {bucket_only}')
         self.assertFalse(result['summary']['cloudChangesMade'])
+
+    def test_platform_compartment_is_required_and_separate_from_managed_scope(self):
+        del self.deployment['platform_compartment_id']
+        with self.assertRaises(ValueError): self.render()
+        self.deployment['platform_compartment_id'] = self.runtime['compartment_id']
+        with self.assertRaises(ValueError): self.render()
 
     def test_routes_require_auth_overwrite_subject_and_preserve_dual_csrf_contract(self):
         result = self.render(backend_ip='10.20.1.10')
