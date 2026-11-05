@@ -2,6 +2,8 @@
 
 A single chat application that turns an administrator's request into reviewed Terraform changes on OCI.
 
+> **Personal project.** Not an Oracle product. My current and past employers are not responsible for it. See the [disclaimer](#disclaimer).
+
 The application runs continuously in one container. The model asks questions, reads a bounded set of resource metadata, and proposes code. The application owns Terraform validation, drift checks, Plan and Apply. A model response cannot execute either Plan or Apply.
 
 ```mermaid
@@ -114,4 +116,10 @@ One option is an Object Storage lifecycle rule that deletes old conversations an
 
 Object Storage needs a service policy in your tenancy before lifecycle rules can run; see [Object Lifecycle Management](https://docs.oracle.com/en-us/iaas/Content/Object/Tasks/usinglifecyclepolicies.htm).
 
-The code is provided under the [MIT License](LICENSE). Third-party dependencies retain their own licenses. This is a personal community starter by Karthik Mani, not an Oracle product or an endorsement. Views and code are my own and do not represent my current or previous employers.
+The code is provided under the [MIT License](LICENSE). Third-party dependencies retain their own licenses.
+
+## Disclaimer
+
+This is a **personal project** by Karthik Mani. It is not an Oracle product, is not supported by Oracle, and is not endorsed by any of my current or past employers. **My current and past employers are not responsible for this code or for any outcome of using it.** Views and code are my own.
+
+The software is provided "as is", without warranty of any kind (see the [license](LICENSE)). It can create, change and delete real cloud resources: review every Plan, use a dedicated test compartment, and run it at your own risk.
