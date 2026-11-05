@@ -1,0 +1,12 @@
+{
+  "availability_domain": "REPLACE_WITH_YOUR_AVAILABILITY_DOMAIN",
+  "subnet_id": "ocid1.subnet.oc1.region.REPLACE_WITH_PRIVATE_SUBNET_OCID",
+  "nsg_ids": [
+    "ocid1.networksecuritygroup.oc1.region.REPLACE_WITH_APP_NSG_OCID"
+  ],
+  "identity_domain": "Default",
+  "dynamic_group_name": "TerraformChat",
+  "container_name": "oci-terraform-chat",
+  "image_mode": "inline",
+  "container_image": "docker.io/library/python@sha256:061c190f3d5815b341a18dfe8a45771f8ba68c15a607ea56997fde3009ac4eec"
+}

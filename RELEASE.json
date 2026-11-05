@@ -1,0 +1,35 @@
+{
+  "name": "OCI Terraform Chat Starter",
+  "version": "0.1.0",
+  "date": "2026-11-05",
+  "license": "MIT",
+  "runtime": {
+    "python": "3.11",
+    "terraform": "1.13.5",
+    "oci_provider": "9.11.0",
+    "oci_sdk": "2.187.1",
+    "python_hcl2": "7.3.1"
+  },
+  "validation": {
+    "applicationTestsPassed": 73,
+    "deploymentTestsPassed": 7,
+    "interfaceControlTestsPassed": 16,
+    "skippedTests": 0,
+    "terraformParserVersion": "1.13.5",
+    "testHostPython": "3.9.6",
+    "officialTerraformInstallerVerified": true,
+    "renderedWithSyntheticConfiguration": true,
+    "customerDataScanPassed": true,
+    "dockerImageBuilt": false,
+    "newTenancyDeploymentTested": false,
+    "cloudResourcesChanged": false
+  },
+  "distribution": {
+    "originalGitHistoryIncluded": false,
+    "credentialsIncluded": false,
+    "customerConfigurationIncluded": false,
+    "terraformStateIncluded": false,
+    "savedChatsIncluded": false
+  },
+  "startHere": "README.md"
+}

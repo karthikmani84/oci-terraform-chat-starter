@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OCI infrastructure chat</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Conversations">
+      <a class="brand" href="./" aria-label="OCI infrastructure chat home"><span class="brand-mark" aria-hidden="true">O</span><span>Infrastructure<br><strong>chat</strong></span></a>
+      <button id="new-chat" class="button new-chat">＋ New request</button>
+      <p class="sidebar-label">Your requests</p>
+      <nav id="history" class="history" aria-label="Saved requests"><p class="muted small">Your requests appear here.</p></nav>
+      <div class="sidebar-bottom"><span class="status-dot" aria-hidden="true"></span>One workspace. Changes stay saved.</div>
+    </aside>
+    <div class="main-shell">
+      <header class="topbar">
+        <div><div class="eyebrow">OCI infrastructure chat</div><div class="scope"><span class="scope-icon" aria-hidden="true">◇</span><span id="scope-name">Connecting…</span><span id="scope-region" class="region"></span></div></div>
+        <div class="identity"><span id="service-status" class="status-badge">Connecting</span><span id="user-name"></span></div>
+      </header>
+      <main id="main-content">
+        <section id="welcome" class="welcome">
+          <div class="welcome-icon" aria-hidden="true">✳</div>
+          <h1>What would you like to change?</h1>
+          <p>Describe the outcome in your own words. We’ll clarify the details, show the code changes and prepare a plan for you to apply.</p>
+          <div class="suggestions" aria-label="Example requests">
+            <button class="suggestion" data-prompt="Create a new virtual cloud network. Help me choose its name and address range."><strong>Create a network</strong><span>Start with a new VCN</span></button>
+            <button class="suggestion" data-prompt="I want to change an existing network load balancer. Show me the available load balancers first."><strong>Change an existing service</strong><span>Discover, import and review</span></button>
+            <button class="suggestion" data-prompt="Check whether any managed resources were changed outside this chat."><strong>Check for manual changes</strong><span>Compare live resources with saved code</span></button>
+          </div>
+          <p class="welcome-note">You control deployment. The model cannot run Plan or Apply.</p>
+        </section>
+        <section id="conversation" class="conversation" aria-label="Request conversation" hidden>
+          <ol id="messages" class="messages" aria-live="polite" aria-relevant="additions"></ol>
+          <div id="operation-status" class="operation-status" role="status" hidden><span class="spinner" aria-hidden="true"></span><span id="operation-text"></span></div>
+          <section id="change-card" class="change-card" aria-label="Change review" hidden></section>
+          <section id="drift-card" class="change-card drift-card" aria-label="Manual changes" hidden></section>
+          <section id="plan-card" class="change-card" aria-label="Saved plan" hidden></section>
+          <section id="result-card" class="change-card" aria-label="Result" hidden></section>
+        </section>
+        <div id="notice" class="notice" role="alert" hidden></div>
+      </main>
+      <footer class="composer-wrap">
+        <form id="message-form" class="composer">
+          <label for="message" class="sr-only">Describe your request or answer a question</label>
+          <textarea id="message" rows="2" maxlength="20000" placeholder="Describe what you need, or answer a question…" required></textarea>
+          <button id="send" class="button primary send" type="submit" aria-label="Send message">Send <span aria-hidden="true">↑</span></button>
+        </form>
+        <div class="composer-note"><span id="stage-note">Changes are limited to the managed compartment.</span><span>Enter to send · Shift + Enter for a new line</span></div>
+      </footer>
+    </div>
+  </div>
+  <dialog id="destructive-dialog" aria-labelledby="destructive-title">
+    <form id="destructive-form">
+      <div class="warning-symbol" aria-hidden="true">!</div>
+      <h2 id="destructive-title">Confirm deletion or replacement</h2>
+      <p>This saved plan deletes or replaces resources. Review the plan before continuing. Replacement can interrupt the service.</p>
+      <p>Type <strong id="confirmation-phrase"></strong> to confirm this exact plan.</p>
+      <label for="destructive-input" class="sr-only">Confirmation phrase</label><input id="destructive-input" autocomplete="off" spellcheck="false" required>
+      <div class="dialog-actions"><button id="cancel-destructive" class="button" type="button">Cancel</button><button id="confirm-destructive" class="button danger" type="submit" disabled>Confirm and apply saved plan</button></div>
+    </form>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,12 @@
+*
+!Dockerfile
+!requirements.txt
+!LICENSE
+!app/
+!app/**
+!deploy/
+!deploy/terraform-release.json
+!scripts/
+!scripts/install_terraform.py
+**/__pycache__
+**/*.pyc

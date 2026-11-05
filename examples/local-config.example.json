@@ -1,0 +1,19 @@
+{
+  "region": "me-dubai-1",
+  "compartment_id": "ocid1.compartment.oc1..REPLACE_WITH_MANAGED_COMPARTMENT_OCID",
+  "scope_name": "demo/managed",
+  "namespace": "REPLACE_WITH_OBJECT_STORAGE_NAMESPACE",
+  "bucket": "REPLACE_WITH_PRIVATE_VERSIONED_BUCKET_NAME",
+  "state_key": "terraform/local-demo.tfstate",
+  "auth": "APIKey",
+  "config_file": "~/.oci/config",
+  "profile": "DEFAULT",
+  "terraform_bin": "terraform",
+  "provider_version": "9.11.0",
+  "model_region": "eu-frankfurt-1",
+  "model_id": "openai.gpt-oss-120b",
+  "model_compartment_id": "ocid1.compartment.oc1..REPLACE_WITH_MODEL_COMPARTMENT_OCID",
+  "local_demo": true,
+  "bind": "127.0.0.1",
+  "workdir": "local-data/workspace"
+}
